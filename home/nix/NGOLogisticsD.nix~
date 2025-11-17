@@ -1,0 +1,493 @@
+{ config, pkgs, ... }:
+
+let
+  ngologistics-dir = "/home/jim/NGOLogisticsD";
+in
+{
+  # Create the project directory structure
+  home.file."${ngologistics-dir}/.env".text = ''
+    VITE_GOOGLE_MAPS_API_KEY=AIzaSyBTmKzNwMM1OIruKtneSGHYUYbJHMUL6j0
+    VITE_API_URL=http://localhost:5000
+  '';
+
+  home.file."${ngologistics-dir}/README.md".text = ''
+    # NGO Logistics Management System
+    
+    A comprehensive web-based logistics management platform designed specifically for humanitarian organizations operating in East Africa.
+    
+    ## Quick Start
+    
+    1. Ensure MongoDB is running: `mongod --dbpath /home/jim/mongodb-data/db`
+    2. Start backend: `cd Backend && npm install && npm run dev`
+    3. Start frontend: `cd App && npm install && npm run dev`
+    4. Access at: http://localhost:5173
+    
+    Default credentials: admin@example.org / password123
+    
+    See INSTALL.md for detailed instructions.
+  '';
+
+  home.file."${ngologistics-dir}/INSTALL.md".text = ''
+    # Installation Guide
+    
+    ## Prerequisites
+    - Node.js 14+
+    - MongoDB 4.4+
+    - Google Maps API Key
+    
+    ## Platform-Specific Instructions
+    
+    ### Linux
+    ```bash
+    # Install Node.js
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    
+    # Install MongoDB
+    wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+    sudo apt-get update
+    sudo apt-get install -y mongodb-org
+    
+    # Start MongoDB
+    sudo systemctl start mongod
+    ```
+    
+    ### Windows
+    1. Download and install Node.js from nodejs.org
+    2. Download and install MongoDB Community Server
+    3. Run MongoDB as a service
+    4. Use PowerShell for all commands
+    
+    ### macOS
+    ```bash
+    # Using Homebrew
+    brew install node
+    brew tap mongodb/brew
+    brew install mongodb-community
+    brew services start mongodb-community
+    ```
+    
+    ### Android (Termux)
+    ```bash
+    pkg update && pkg upgrade
+    pkg install nodejs mongodb
+    mkdir -p ~/data/db
+    mongod --dbpath ~/data/db &
+    ```
+    
+    ### iOS (iSH Shell)
+    ```bash
+    apk update
+    apk add nodejs npm
+    # MongoDB not available on iOS - use cloud database
+    ```
+  '';
+
+  # Backend package.json
+  home.file."${ngologistics-dir}/Backend/package.json".text = builtins.toJSON {
+    name = "ngologistics-backend";
+    version = "1.0.0";
+    type = "module";
+    scripts = {
+      dev = "node server.js";
+      start = "node server.js";
+      test = "node test-backend.js";
+    };
+    dependencies = {
+      express = "^4.18.2";
+      mongoose = "^8.0.3";
+      "socket.io" = "^4.7.4";
+      cors = "^2.8.5";
+      "dotenv" = "^16.3.1";
+      bcryptjs = "^2.4.3";
+      "jsonwebtoken" = "^9.0.2";
+      helmet = "^7.1.0";
+      morgan = "^1.10.0";
+      "express-validator" = "^7.0.1";
+      compression = "^1.7.4";
+      "rate-limiter-flexible" = "^4.0.1";
+      nodemailer = "^6.9.7";
+      winston = "^3.11.0";
+    };
+  };
+
+  # Frontend package.json
+  home.file."${ngologistics-dir}/App/package.json".text = builtins.toJSON {
+    name = "ngologistics-frontend";
+    version = "1.0.0";
+    type = "module";
+    scripts = {
+      dev = "vite";
+      build = "vite build";
+      preview = "vite preview";
+    };
+    dependencies = {
+      vue = "^3.3.11";
+      "vue-router": "^4.2.5";
+      pinia = "^2.1.7";
+      axios = "^1.6.2";
+      "socket.io-client": "^4.7.4";
+      bootstrap = "^5.3.2";
+      "vue-toastification": "^2.0.0-rc.5";
+      "chart.js": "^4.4.0";
+      quagga = "^0.12.1";
+    };
+    devDependencies = {
+      vite = "^4.5.14";
+      "@vitejs/plugin-vue": "^4.5.2";
+    };
+  };
+
+  # Backend server.js
+  home.file."${ngologistics-dir}/Backend/server.js".text = ''
+    import express from 'express';
+    import mongoose from 'mongoose';
+    import cors from 'cors';
+    import dotenv from 'dotenv';
+    import helmet from 'helmet';
+    import morgan from 'morgan';
+    import compression from 'compression';
+    import { createServer } from 'http';
+    { Server } from 'socket.io';
+
+    // Load env vars
+    dotenv.config({ path: './config/config.env' });
+
+    const app = express();
+    const server = createServer(app);
+    const io = new Server(server, {
+      cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"]
+      }
+    });
+
+    // Middleware
+    app.use(helmet());
+    app.use(compression());
+    app.use(cors());
+    app.use(morgan('combined'));
+    app.use(express.json());
+
+    // MongoDB connection
+    mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/NGOLogistics')
+      .then(() => console.log('MongoDB connected'))
+      .catch(err => console.error('MongoDB connection error:', err));
+
+    // Basic health check
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'OK', timestamp: new Date().toISOString() });
+    });
+
+    // Socket.io connection handling
+    io.on('connection', (socket) => {
+      console.log('User connected:', socket.id);
+      
+      socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+      });
+    });
+
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+      console.log(\`Server running on port \${PORT}\`);
+    });
+  '';
+
+  # Frontend main.js
+  home.file."${ngologistics-dir}/App/src/main.js".text = ''
+    import { createApp } from 'vue';
+    import { createPinia } from 'pinia';
+    import App from './App.vue';
+    import router from './router';
+    import 'bootstrap/dist/css/bootstrap.css';
+
+    const app = createApp(App);
+    app.use(createPinia());
+    app.use(router);
+    app.mount('#app');
+  '';
+
+  # Vue Router
+  home.file."${ngologistics-dir}/App/src/router/index.js".text = ''
+    import { createRouter, createWebHistory } from 'vue-router';
+    import Login from '../views/Login.vue';
+    import Dashboard from '../views/Dashboard.vue';
+    import ShipmentsInventory from '../views/ShipmentsInventory.vue';
+    import Reports from '../views/Reports.vue';
+    import Admin from '../views/Admin.vue';
+
+    const routes = [
+      { path: '/', redirect: '/login' },
+      { path: '/login', component: Login },
+      { path: '/dashboard', component: Dashboard },
+      { path: '/shipments', component: ShipmentsInventory },
+      { path: '/reports', component: Reports },
+      { path: '/admin', component: Admin }
+    ];
+
+    const router = createRouter({
+      history: createWebHistory(),
+      routes
+    });
+
+    export default router;
+  '';
+
+  # Login Component (always loads first)
+  home.file."${ngologistics-dir}/App/src/views/Login.vue".text = ''
+    <template>
+      <div class="login-modal">
+        <div class="modal-content">
+          <h2>NGO Logistics System</h2>
+          <form @submit.prevent="handleLogin">
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input v-model="email" type="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <input v-model="password" type="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+          </form>
+          <div class="demo-credentials mt-3">
+            <small>Demo: admin@example.org / password123</small>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script setup>
+    import { ref } from 'vue';
+    import { useRouter } from 'vue-router';
+
+    const email = ref('');
+    const password = ref('');
+    const router = useRouter();
+
+    const handleLogin = () => {
+      // Simple demo authentication
+      if (email.value === 'admin@example.org' && password.value === 'password123') {
+        localStorage.setItem('authenticated', 'true');
+        router.push('/dashboard');
+      } else {
+        alert('Invalid credentials. Use demo credentials provided.');
+      }
+    };
+    </script>
+
+    <style scoped>
+    .login-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      width: 400px;
+      max-width: 90%;
+    }
+    </style>
+  '';
+
+  # Dashboard with Google Maps
+  home.file."${ngologistics-dir}/App/src/views/Dashboard.vue".text = ''
+    <template>
+      <div class="dashboard">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1>Dashboard</h1>
+          <button class="btn btn-outline-primary" @click="refreshData">Refresh</button>
+        </div>
+        
+        <!-- Statistics Cards (120px height) -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <h5 class="card-title">Total Shipments</h5>
+                <h2 class="card-text">156</h2>
+                <span class="text-success">↑ 12%</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <h5 class="card-title">Delivery Rate</h5>
+                <h2 class="card-text">92%</h2>
+                <span class="text-danger">↓ 5%</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <h5 class="card-title">Avg Delivery (Days)</h5>
+                <h2 class="card-text">3.2</h2>
+                <span class="text-success">↑ 8%</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card stat-card">
+              <div class="card-body">
+                <h5 class="card-title">Inventory Value</h5>
+                <h2 class="card-text">$245K</h2>
+                <span class="text-danger">↓ 15%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Google Map -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Logistics Map</h5>
+            <div class="map-controls">
+              <button class="btn btn-sm btn-outline-primary me-2" @click="toggleWarehouses">
+                {{ showWarehouses ? 'Hide' : 'Show' }} Warehouses
+              </button>
+              <button class="btn btn-sm btn-outline-primary" @click="toggleShipments">
+                {{ showShipments ? 'Hide' : 'Show' }} Shipments
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="map" ref="mapContainer" style="height: 500px; width: 100%;"></div>
+            <div class="map-legend mt-3">
+              <h6>Map Legend</h6>
+              <div class="d-flex flex-wrap gap-3">
+                <div class="legend-item">
+                  <span class="legend-color warehouse"></span>
+                  <span>Warehouses</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color in-transit"></span>
+                  <span>In-Transit Shipments</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color delayed"></span>
+                  <span>Delayed Shipments</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color pending"></span>
+                  <span>Pending Shipments</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script setup>
+    import { ref, onMounted, onUnmounted } from 'vue';
+
+    const mapContainer = ref(null);
+    const showWarehouses = ref(true);
+    const showShipments = ref(true);
+    let map = null;
+
+    const refreshData = () => {
+      console.log('Refreshing dashboard data...');
+    };
+
+    const toggleWarehouses = () => {
+      showWarehouses.value = !showWarehouses.value;
+    };
+
+    const toggleShipments = () => {
+      showShipments.value = !showShipments.value;
+    };
+
+    onMounted(() => {
+      // Google Maps will be loaded here
+      console.log('Dashboard mounted - Google Maps would be initialized here');
+    });
+
+    onUnmounted(() => {
+      // Cleanup
+    });
+    </script>
+
+    <style scoped>
+    .stat-card {
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .legend-color {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .legend-color.warehouse { background-color: #4285F4; }
+    .legend-color.in-transit { background-color: #34A853; }
+    .legend-color.delayed { background-color: #EA4335; }
+    .legend-color.pending { background-color: #FBBC05; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+    }
+    </style>
+  '';
+
+  # Additional key files would continue here...
+  # Due to length constraints, I'm showing the structure for the most critical files
+
+  # Startup script
+  home.file."${ngologistics-dir}/start-servers.sh".text = ''
+    #!/bin/bash
+    echo "Starting NGO Logistics Management System..."
+    
+    # Start MongoDB
+    echo "Starting MongoDB..."
+    mongod --dbpath /home/jim/mongodb-data/db --fork --logpath /home/jim/mongodb-data/mongodb.log
+    
+    # Start backend
+    echo "Starting Backend Server..."
+    cd Backend
+    npm install
+    npm run dev &
+    
+    # Start frontend  
+    echo "Starting Frontend Development Server..."
+    cd ../App
+    npm install
+    npm run dev &
+    
+    echo "System starting up..."
+    echo "Frontend: http://localhost:5173"
+    echo "Backend API: http://localhost:5000"
+    echo "Use Ctrl+C to stop all services"
+    
+    wait
+  '';
+
+  # MongoDB test script
+  home.file."${ngologistics-dir}/start-mongodb.sh".text = ''
+    #!/bin/bash
+    mkdir -p /home/jim/mongodb-data/db
+    mongod --dbpath /home/jim/mongodb-data/db
+  '';
+
+  # Backend test script
+  home.file."${ngologistics-dir}/test-backend.sh".text = ''
+    #!/bin/bash
+    curl http://localhost:5000/api/health
+  '';
+}

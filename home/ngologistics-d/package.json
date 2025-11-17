@@ -1,0 +1,14 @@
+{
+  "name": "ngologistics-d",
+  "version": "1.0.0",
+  "description": "NGO Logistics D - Node.js + TypeScript + MongoDB",
+  "scripts": {
+    "dev": "concurrently \"cd Backend && npm run dev\" \"cd App && npm run dev\"",
+    "setup": "./setup.sh",
+    "start-db": "mkdir -p /tmp/ngologistics-d/mongodb-data && mongod --port 27018 --dbpath /tmp/ngologistics-d/mongodb-data --fork --logpath /tmp/ngologistics-d/mongodb.log",
+    "stop-db": "pkill -f \"mongod.*27018\""
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}

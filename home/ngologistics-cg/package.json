@@ -1,0 +1,14 @@
+{
+  "name": "ngologistics-cg",
+  "version": "1.0.0",
+  "description": "NGO Logistics CG - WebAssembly + MariaDB",
+  "scripts": {
+    "dev": "concurrently \"cd Backend && npm run dev\" \"cd Frontend && npm run dev\"",
+    "setup": "./setup.sh",
+    "start-db": "mkdir -p /tmp/ngologistics-cg/mariadb-data && mariadbd --port=3307 --datadir=/tmp/ngologistics-cg/mariadb-data --socket=/tmp/ngologistics-cg/mariadb.sock &",
+    "stop-db": "pkill -f \"mariadbd.*3307\""
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}
