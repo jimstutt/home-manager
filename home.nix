@@ -58,5 +58,8 @@
     wget
     jq
     concurrently
+    sqlite
+    obelisk
+    pandoc
   ];
 }

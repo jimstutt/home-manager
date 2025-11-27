@@ -41,10 +41,13 @@
         ngologistics-cg = pkgs.mkShell {
           name = "NGOLogisticsCG";
           buildInputs = with pkgs; [
+	    obelisk
             reflex-platform
+	    pandoc
             nodejs_20
             mariadb
             git
+	    tree
             vim
             curl
             wget
