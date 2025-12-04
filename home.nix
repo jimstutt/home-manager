@@ -11,6 +11,18 @@
   programs.home-manager.enable = true;
 
   home.packages = with pkgs; [
+
+    # General Haskell Tools
+    cabal-install
+    haskell-language-server
+    
+    # The specific WASM compiler globally (optional, usually better in devShell)
+    wasmFlake.ghc-wasm32-wasi
+    
+    # WASM Runtimes (Replacing the need for scripts/run-wasm.sh )
+    wasmtime
+    wabt # for wasm-objdump, etc.
+
     (writeShellScriptBin "setup-ngologistics-d" ''
       echo "Setting up NGO Logistics D (Node.js + FerretDB)..."
       if [ -d "$HOME/Dev/NGOLogisticsD" ]; then

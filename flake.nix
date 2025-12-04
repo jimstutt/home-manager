@@ -41,8 +41,7 @@
         ngologistics-cg = pkgs.mkShell {
           name = "NGOLogisticsCG";
           buildInputs = with pkgs; [
-	    obelisk
-            reflex-platform
+            reflex
 	    pandoc
             nodejs_20
             mariadb
