@@ -41,25 +41,22 @@
           shellHook = "echo '🚀 NGOLogisticsD shell active'";
         };
 
-        # 3. NGOLogisticsCG — WebAssembly + MariaDB + GHC-WASM
         ngologistics-cg = pkgs.mkShell {
           name = "NGOLogisticsCG";
+          # 1. Start with ghc-wasm-meta's shell
+          inputsFrom = [
+            (import /home/jim/Dev/ghc-wasm-meta { }).devShells.x86_64-linux.default
+          ];
+          # 2. Add your extra tools
           packages = with pkgs; [
             reflex pandoc nodejs_20 mariadb git tree vim curl wget
             emscripten binaryen wasm-pack
-
-            # ✅ GHC-WASM toolchain (added)
-            (import (fetchTarball "https://github.com/haskell-wasm/ghc-wasm-meta/archive/main.tar.gz") {
-              inherit pkgs;
-            }).ghc-wasm32-wasi
           ];
           shellHook = ''
-            echo '🚀 NGOLogisticsCG Development Shell'
-            echo '→ Project: ~/Dev/NGOLogisticsCG'
-            echo "→ GHC-WASM: $(ghc --version 2>/dev/null || echo 'not in PATH yet')"
+            echo '🚀 NGOLogisticsCG + GHC-WASM'
+            echo "→ GHC: $(ghc --version 2>/dev/null | head -1)"
           '';
         };
-
       };
     };
 }
