@@ -16,9 +16,6 @@
     cabal-install
     haskell-language-server
     
-    # The specific WASM compiler globally (optional, usually better in devShell)
-    wasmFlake.ghc-wasm32-wasi
-    
     # WASM Runtimes (Replacing the need for scripts/run-wasm.sh )
     wasmtime
     wabt # for wasm-objdump, etc.
