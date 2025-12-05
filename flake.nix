@@ -1,11 +1,9 @@
-# /home/jim/.config/home-manager/flake.nix
 {
-  description = "Jim's HM — with ghc-wasm-meta input";
+  description = "Jim's HM — ghc-wasm-meta as input";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     home-manager.url = "github:nix-community/home-manager/release-24.05";
-    # ✅ Add ghc-wasm-meta as a flake input (local path, allowed)
     ghc-wasm-meta.url = "git+file:///home/jim/Dev/ghc-wasm-meta";
   };
 
@@ -40,12 +38,9 @@
           shellHook = "echo '🚀 NGOLogisticsD shell active'";
         };
 
-        # ✅ Compose with ghc-wasm-meta's shell
         ngologistics-cg = pkgs.mkShell {
           name = "NGOLogisticsCG";
-          # Pull in GHC-WASM env + tools
           inputsFrom = [ ghc-wasm-meta.devShells.${system}.default ];
-          # Add your extra tools
           packages = with pkgs; [
             reflex pandoc nodejs_20 mariadb git tree vim curl wget
             emscripten binaryen wasm-pack
