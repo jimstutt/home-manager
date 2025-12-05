@@ -1,65 +1,35 @@
-# flake.nix
 {
-  description = "Jim's Home Manager configuration";
+  description = "Jim's HM — inline, no files";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
-    home-manager = {
-      url = "github:nix-community/home-manager/release-24.05";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    home-manager.url = "github:nix-community/home-manager/release-24.05";
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
+  outputs = { self, nixpkgs, home-manager, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
     in {
       homeConfigurations.jim = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        modules = [ ./home.nix ];
+        modules = [{
+          # Critical: set stateVersion as STRING
+          home.stateVersion = "24.05";
+
+          home.username = "jim";
+          home.homeDirectory = "/home/jim";
+          programs.home-manager.enable = true;
+
+          home.packages = [ pkgs.git pkgs.vim ];
+
+          programs.git.enable = true;
+        }];
       };
 
-      devShells.${system} = {
-        ngologistics-d = pkgs.mkShell {
-          name = "NGOLogisticsD";
-          buildInputs = with pkgs; [
-            nodejs_20
-            ferretdb
-            git
-            vim
-            curl
-            wget
-            typescript
-          ];
-          shellHook = ''
-            echo "NGOLogisticsD Development Shell (Node.js + FerretDB)"
-            echo "Run: cd ~/Dev/NGOLogisticsD && npm run dev"
-          '';
-        };
-
-        ngologistics-cg = pkgs.mkShell {
-          name = "NGOLogisticsCG";
-          buildInputs = with pkgs; [
-            reflex
-	    pandoc
-            nodejs_20
-            mariadb
-            git
-	    tree
-            vim
-            curl
-            wget
-            emscripten
-            binaryen
-            wasm-pack
-          ];
-          shellHook = ''
-            echo "NGOLogisticsCG Development Shell (WebAssembly + MariaDB)"
-            echo "Run: cd ~/Dev/NGOLogisticsCG && npm run dev"
-          '';
-        };
+      devShells.${system}.default = pkgs.mkShell {
+        packages = [ pkgs.git ];
+        shellHook = "echo '✅ Default shell ready'";
       };
     };
 }
-
