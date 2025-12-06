@@ -33,7 +33,7 @@
         ngologistics-d = pkgs.mkShell {
           name = "NGOLogisticsD";
           packages = with pkgs; [
-            nodejs_20 ferretdb git vim curl wget typescript
+            nodejs_20 ferretdb git vim curl wget typescript rg
           ];
           shellHook = "echo '🚀 NGOLogisticsD shell active'";
         };
@@ -43,7 +43,7 @@
           inputsFrom = [ ghc-wasm-meta.devShells.${system}.default ];
           packages = with pkgs; [
             reflex pandoc nodejs_20 mariadb git tree vim curl wget
-            emscripten binaryen wasm-pack
+            emscripten binaryen wasm-pack rg
           ];
           shellHook = ''
             echo '🚀 NGOLogisticsCG + GHC-WASM'
